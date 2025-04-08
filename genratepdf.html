@@ -2,7 +2,7 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <title>PDF Generator</title>
+    <title>Smart PDF Generator</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <link
       href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap"
@@ -27,6 +27,10 @@
         --primary: #3399ff;
       }
 
+      * {
+        box-sizing: border-box;
+      }
+
       body {
         font-family: "Inter", sans-serif;
         background: var(--bg);
@@ -44,12 +48,24 @@
         border-radius: 16px;
         box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
         width: 100%;
-        max-width: 500px;
+        max-width: 600px;
         position: relative;
+        animation: fadeIn 0.6s ease-in-out;
+      }
+
+      @keyframes fadeIn {
+        from {
+          opacity: 0;
+          transform: translateY(10px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
       }
 
       h1 {
-        font-size: 24px;
+        font-size: 26px;
         margin-bottom: 20px;
         text-align: center;
       }
@@ -76,9 +92,15 @@
         outline: none;
       }
 
-      button {
+      .actions {
         margin-top: 30px;
-        width: 100%;
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+      }
+
+      button {
+        flex: 1;
         padding: 12px;
         font-size: 16px;
         background-color: var(--primary);
@@ -91,17 +113,6 @@
 
       button:hover {
         background-color: #0056b3;
-      }
-
-      .dark-toggle {
-        position: absolute;
-        top: 20px;
-        right: 20px;
-        cursor: pointer;
-        font-size: 14px;
-        color: var(--primary);
-        background: none;
-        border: none;
       }
 
       .toast {
@@ -117,22 +128,28 @@
         font-size: 14px;
       }
 
-      @media (max-width: 480px) {
-        button {
-          position: sticky;
-          bottom: 0;
-          z-index: 2;
-        }
+      .dark-toggle {
+        position: absolute;
+        top: 20px;
+        right: 20px;
+        cursor: pointer;
+        background: none;
+        color: var(--primary);
+        font-weight: 600;
+        border: none;
       }
     </style>
   </head>
   <body>
     <div class="container">
-      <button class="dark-toggle" onclick="toggleTheme()">Toggle Dark</button>
+      <button class="dark-toggle" onclick="toggleTheme()">Toggle Theme</button>
       <h1>PDF Generator</h1>
       <form id="pdf-form">
         <div id="form-container"></div>
-        <button type="button" onclick="generatePDF()">Download PDF</button>
+        <div class="actions">
+          <button type="button" onclick="generatePDF()">Download PDF</button>
+          <button type="button" onclick="clearForm()">Clear Form</button>
+        </div>
       </form>
     </div>
 
@@ -153,7 +170,7 @@
         let first = true;
         for (const [key, value] of Object.entries(data)) {
           const label = document.createElement("label");
-          label.textContent = key;
+          label.textContent = key.charAt(0).toUpperCase() + key.slice(1);
 
           const input = document.createElement("input");
           input.type = "text";
@@ -175,20 +192,38 @@
         const { jsPDF } = window.jspdf;
         const doc = new jsPDF();
         const inputs = document.querySelectorAll("#form-container input");
-        let y = 10;
+        let y = 20;
+        let pageHeight = doc.internal.pageSize.height;
         let nameForFile = "user_data";
 
-        inputs.forEach((input) => {
+        // Branding (logo or title)
+        doc.setFontSize(18);
+        doc.text("User Submitted Data", 10, 10);
+        doc.setFontSize(12);
+        doc.text(
+          `Generated on: ${new Date().toLocaleString()}`,
+          10,
+          pageHeight - 10
+        );
+
+        inputs.forEach((input, index) => {
           const label = input.previousSibling.textContent;
           const value = input.value.trim() || "N/A";
+
           doc.setFont("helvetica", "bold");
           doc.text(`${label}:`, 10, y);
           doc.setFont("helvetica", "normal");
           doc.text(`${value}`, 40, y);
+
           y += 10;
 
           if (label.toLowerCase() === "name" && value !== "N/A") {
             nameForFile = value.toLowerCase().replace(/\s+/g, "_");
+          }
+
+          if (y > pageHeight - 20) {
+            doc.addPage();
+            y = 20;
           }
         });
 
@@ -204,15 +239,30 @@
         }, 2500);
       };
 
-      const toggleTheme = () => {
-        const current = document.documentElement.getAttribute("data-theme");
-        document.documentElement.setAttribute(
-          "data-theme",
-          current === "dark" ? "light" : "dark"
-        );
+      const clearForm = () => {
+        document
+          .querySelectorAll("#form-container input")
+          .forEach((input) => (input.value = ""));
       };
 
-      // Run on load
+      const toggleTheme = () => {
+        const current = document.documentElement.getAttribute("data-theme");
+        if (current === "dark") {
+          document.documentElement.setAttribute("data-theme", "light");
+        } else {
+          document.documentElement.setAttribute("data-theme", "dark");
+        }
+      };
+
+      // Detect system dark mode preference
+      if (
+        window.matchMedia &&
+        window.matchMedia("(prefers-color-scheme: dark)").matches
+      ) {
+        document.documentElement.setAttribute("data-theme", "dark");
+      }
+
+      // Init
       const params = getParams();
       buildForm(params);
     </script>
