@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>PDF Generator</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  </head>
+  <body>
+    <h1>PDF Generator from URL</h1>
+    <button onclick="generatePDF()">Generate PDF</button>
+
+    <script>
+      // Parse URL parameters into a JS object
+      function getParams() {
+        const params = new URLSearchParams(window.location.search);
+        const data = {};
+        for (const [key, value] of params.entries()) {
+          data[key] = value;
+        }
+        return data;
+      }
+
+      async function generatePDF() {
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF();
+        const data = getParams();
+
+        let y = 10;
+        for (const [key, value] of Object.entries(data)) {
+          doc.text(`${key}: ${value}`, 10, y);
+          y += 10;
+        }
+
+        doc.save("user_data.pdf");
+      }
+    </script>
+  </body>
+</html>
